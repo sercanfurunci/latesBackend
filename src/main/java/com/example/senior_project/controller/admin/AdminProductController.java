@@ -7,6 +7,7 @@ import com.example.senior_project.service.admin.AdminProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -34,10 +35,24 @@ public class AdminProductController {
     }
 
     @PutMapping("/{productId}")
-    public ResponseEntity<Product> updateProduct(
+    public ResponseEntity<?> updateProduct(
             @PathVariable Long productId,
             @Valid @RequestBody ProductUpdateRequest request) {
-        return ResponseEntity.ok(adminProductService.updateProduct(productId, request));
+        try {
+            // Debug logları
+            System.out.println("Admin update request received:");
+            System.out.println("Product ID: " + productId);
+            System.out.println("Request Data: " + request.toString());
+
+            Product updatedProduct = adminProductService.updateProduct(productId, request);
+            return ResponseEntity.ok(updatedProduct);
+        } catch (Exception e) {
+            System.out.println("Error in admin updateProduct: " + e.getMessage());
+            e.printStackTrace(); // Stack trace'i logla
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ürün güncellenirken bir hata oluştu: " + e.getMessage());
+        }
     }
 
     @PutMapping("/{productId}/status")

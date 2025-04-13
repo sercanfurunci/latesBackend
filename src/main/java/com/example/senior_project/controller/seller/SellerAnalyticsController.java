@@ -31,4 +31,4 @@ public class SellerAnalyticsController {
             @AuthenticationPrincipal User seller) {
         return ResponseEntity.ok(analyticsService.getProductPerformance(productId, seller));
     }
-} 
+}

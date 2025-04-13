@@ -42,7 +42,7 @@ server:
 
 logging:
   level:
-    org.springframework.security: TRACE
+    org.springframework.security: DEBUG
     com.example.senior_project: DEBUG
     org.springframework.web: DEBUG
 

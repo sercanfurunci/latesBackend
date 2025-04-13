@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -23,6 +25,7 @@ import java.util.List;
 public class SellerProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private static final Logger log = LoggerFactory.getLogger(SellerProductService.class);
 
     @Transactional
     public Product createProduct(ProductCreateRequest request, User seller) {
@@ -55,10 +58,19 @@ public class SellerProductService {
     @Transactional
     public Product updateProduct(Long productId, ProductUpdateRequest request, User seller) {
         try {
+            log.debug("Updating product with ID: {} for seller: {}", productId, seller.getEmail());
+            log.debug("Update request: {}", request);
+
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
 
+            log.debug("Found product: {}", product);
+            log.debug("Product seller ID: {}, Request seller ID: {}",
+                    product.getSeller().getId(), seller.getId());
+
             if (!product.getSeller().getId().equals(seller.getId())) {
+                log.warn("Unauthorized update attempt by seller: {} for product: {}",
+                        seller.getEmail(), productId);
                 throw new RuntimeException("Bu ürünü düzenleme yetkiniz yok");
             }
 
@@ -78,12 +90,14 @@ public class SellerProductService {
             if (request.getStock() != null && request.getStock() >= 0)
                 product.setStock(request.getStock());
             if (request.getStatus() != null)
-                product.setStatus(request.getProductStatus());
+                product.setStatus(request.getStatus());
             if (request.getShippingDetails() != null && !request.getShippingDetails().trim().isEmpty())
                 product.setShippingDetails(request.getShippingDetails().trim());
 
+            log.debug("Product updated successfully: {}", product);
             return productRepository.save(product);
         } catch (Exception e) {
+            log.error("Error updating product: {}", e.getMessage(), e);
             throw new RuntimeException("Ürün güncellenirken bir hata oluştu: " + e.getMessage());
         }
     }

@@ -36,16 +36,39 @@ public class SellerProductController {
     }
 
     @PutMapping("/{productId}")
-    public ResponseEntity<ProductDTO> updateProduct(
+    public ResponseEntity<?> updateProduct(
             @PathVariable Long productId,
             @Valid @RequestBody ProductUpdateRequest request,
             @AuthenticationPrincipal User seller) {
         try {
+            // Debug için log ekleyelim
+            System.out.println("Update request received:");
+            System.out.println("Product ID: " + productId);
+            System.out.println("Seller ID: " + seller.getId());
+            System.out.println("Request Data: " + request.toString());
+
+            // Önce ürünün var olduğunu ve satıcıya ait olduğunu kontrol edelim
+            Product existingProduct = sellerProductService.getProductDetails(productId, seller);
+
+            if (!existingProduct.getSeller().getId().equals(seller.getId())) {
+                return ResponseEntity
+                        .status(HttpStatus.FORBIDDEN)
+                        .body("Bu ürün size ait değil");
+            }
+
             Product updatedProduct = sellerProductService.updateProduct(productId, request, seller);
             return ResponseEntity.ok(dtoConverter.toProductDTO(updatedProduct));
+
+        } catch (RuntimeException e) {
+            System.out.println("Error in updateProduct: " + e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body(e.getMessage());
         } catch (Exception e) {
-            // Log the error
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            System.out.println("Unexpected error in updateProduct: " + e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ürün güncellenirken bir hata oluştu");
         }
     }
 

@@ -60,7 +60,7 @@ public class AdminProductService {
                         product.setStock(request.getStock());
                 }
                 if (request.getStatus() != null) {
-                        product.setStatus(request.getProductStatus());
+                        product.setStatus(request.getStatus());
                 }
                 if (request.getCategoryId() != null) {
                         Category category = categoryRepository.findById(request.getCategoryId())

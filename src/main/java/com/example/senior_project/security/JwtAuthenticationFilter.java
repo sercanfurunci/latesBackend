@@ -34,7 +34,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
-        log.debug("Request URI: {}", request.getRequestURI());
+        log.debug("Processing request to: {}", request.getRequestURI());
+        log.debug("Authorization header: {}", authHeader);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.debug("No JWT token found in request headers");
