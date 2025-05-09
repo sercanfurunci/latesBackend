@@ -11,8 +11,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/products")
@@ -87,5 +89,18 @@ public class AdminProductController {
             @PathVariable Long productId,
             @Valid @RequestBody ProductReviewRequest request) {
         return ResponseEntity.ok(adminProductService.rejectProduct(productId, request.getMessage()));
+    }
+
+    @PostMapping("/{productId}/images")
+    public ResponseEntity<?> uploadProductImages(
+            @PathVariable Long productId,
+            @RequestParam("images") List<MultipartFile> images) {
+        try {
+            adminProductService.addProductImages(productId, images);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to upload images: " + e.getMessage());
+        }
     }
 }

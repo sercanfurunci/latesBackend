@@ -6,15 +6,19 @@ import com.example.senior_project.model.Product;
 import com.example.senior_project.model.User;
 import com.example.senior_project.repository.CommentRepository;
 import com.example.senior_project.repository.ProductRepository;
+import com.example.senior_project.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class CommentService {
     private final CommentRepository commentRepository;
     private final ProductRepository productRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public Comment addComment(CommentRequest request, User user) {
@@ -30,7 +34,8 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         updateProductRating(product);
-        
+        updateSellerRating(product);
+
         return savedComment;
     }
 
@@ -39,4 +44,25 @@ public class CommentService {
         product.setAverageRating(averageRating);
         productRepository.save(product);
     }
-} 
+
+    @Transactional
+    private void updateSellerRating(Product product) {
+        User seller = product.getSeller();
+        List<Product> sellerProducts = productRepository.findBySeller(seller);
+
+        double totalRating = 0;
+        int ratedProductCount = 0;
+
+        for (Product p : sellerProducts) {
+            if (p.getAverageRating() != null && p.getAverageRating() > 0) {
+                totalRating += p.getAverageRating();
+                ratedProductCount++;
+            }
+        }
+
+        if (ratedProductCount > 0) {
+            seller.setSellerRating(totalRating / ratedProductCount);
+            userRepository.save(seller);
+        }
+    }
+}

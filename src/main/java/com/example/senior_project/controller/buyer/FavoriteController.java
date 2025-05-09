@@ -12,28 +12,19 @@ import com.example.senior_project.service.buyer.FavoriteService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/buyer/favorites")
+@RequestMapping("/api/v1/buyer")
 @RequiredArgsConstructor
 public class FavoriteController {
     private final FavoriteService favoriteService;
 
-    @PostMapping("/{productId}")
-    public ResponseEntity<Favorite> addToFavorites(
-            @PathVariable Long productId,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(favoriteService.addToFavorites(productId, user));
+    @GetMapping("/favorites")
+    public ResponseEntity<List<ProductDTO>> getFavorites() {
+        return ResponseEntity.ok(favoriteService.getFavorites());
     }
 
-    @DeleteMapping("/{productId}")
-    public ResponseEntity<Void> removeFromFavorites(
-            @PathVariable Long productId,
-            @AuthenticationPrincipal User user) {
-        favoriteService.removeFromFavorites(productId, user);
+    @PostMapping("/favorites/toggle/{productId}")
+    public ResponseEntity<Void> toggleFavorite(@PathVariable Long productId) {
+        favoriteService.toggleFavorite(productId);
         return ResponseEntity.ok().build();
     }
-
-    @GetMapping
-    public ResponseEntity<List<Favorite>> getUserFavorites(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(favoriteService.getUserFavorites(user));
-    }
-} 
+}

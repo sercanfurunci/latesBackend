@@ -118,8 +118,17 @@ public class SellerProductService {
         }
     }
 
-    public List<Product> getSellerProducts(User seller) {
-        return productRepository.findBySeller(seller);
+    public List<Product> getSellerProducts(User seller, String sortBy) {
+        switch (sortBy) {
+            case "newest":
+                return productRepository.findBySellerOrderByCreatedAtDesc(seller);
+            case "price-asc":
+                return productRepository.findBySellerOrderByPriceAsc(seller);
+            case "price-desc":
+                return productRepository.findBySellerOrderByPriceDesc(seller);
+            default:
+                return productRepository.findBySeller(seller);
+        }
     }
 
     public Product getProductDetails(Long productId, User seller) {

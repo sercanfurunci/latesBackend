@@ -81,8 +81,10 @@ public class SellerProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Product>> getSellerProducts(@AuthenticationPrincipal User seller) {
-        return ResponseEntity.ok(sellerProductService.getSellerProducts(seller));
+    public ResponseEntity<List<Product>> getSellerProducts(
+            @AuthenticationPrincipal User seller,
+            @RequestParam(required = false, defaultValue = "newest") String sortBy) {
+        return ResponseEntity.ok(sellerProductService.getSellerProducts(seller, sortBy));
     }
 
     @GetMapping("/{productId}")

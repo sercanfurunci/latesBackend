@@ -41,4 +41,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                         String description, Pageable pageable);
 
         Page<Product> findByTitleContainingOrDescriptionContaining(String title, String description, Pageable pageable);
+
+        List<Product> findBySellerOrderByCreatedAtDesc(User seller);
+
+        List<Product> findBySellerOrderByPriceAsc(User seller);
+
+        List<Product> findBySellerOrderByPriceDesc(User seller);
 }
