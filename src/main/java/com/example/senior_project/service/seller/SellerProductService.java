@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -26,6 +27,9 @@ public class SellerProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private static final Logger log = LoggerFactory.getLogger(SellerProductService.class);
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
 
     @Transactional
     public Product createProduct(ProductCreateRequest request, User seller) {
@@ -145,36 +149,67 @@ public class SellerProductService {
     @Transactional
     public Product uploadImages(Long productId, List<MultipartFile> images, User seller) {
         try {
+            log.debug("Resim yükleme işlemi başladı - Ürün ID: {}, Satıcı: {}", productId, seller.getEmail());
+
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
 
             if (!product.getSeller().getId().equals(seller.getId())) {
+                log.warn("Yetkisiz resim yükleme denemesi - Ürün ID: {}, Satıcı: {}", productId, seller.getEmail());
                 throw new RuntimeException("Bu ürüne resim ekleme yetkiniz yok");
             }
 
             List<String> imageUrls = new ArrayList<>();
-            String uploadDir = "uploads/products/" + productId;
-            File directory = new File(uploadDir);
+            String productUploadDir = uploadDir + "\\products\\" + productId;
+            File directory = new File(productUploadDir);
+
             if (!directory.exists()) {
-                directory.mkdirs();
+                log.debug("Dizin oluşturuluyor: {}", productUploadDir);
+                if (!directory.mkdirs()) {
+                    throw new RuntimeException("Resim klasörü oluşturulamadı: " + productUploadDir);
+                }
             }
 
             for (MultipartFile image : images) {
-                String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
-                String filePath = uploadDir + "/" + fileName;
+                if (image.isEmpty()) {
+                    log.debug("Boş resim dosyası atlandı");
+                    continue;
+                }
 
-                // Resmi kaydet
+                String originalFilename = image.getOriginalFilename();
+                if (originalFilename == null) {
+                    log.debug("Geçersiz dosya adı");
+                    continue;
+                }
+
+                String extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+                if (!extension.matches("\\.(jpg|jpeg|png|gif)$")) {
+                    throw new RuntimeException("Sadece JPG, JPEG, PNG ve GIF formatları desteklenmektedir");
+                }
+
+                if (image.getSize() > 5 * 1024 * 1024) {
+                    throw new RuntimeException("Dosya boyutu 5MB'dan büyük olamaz");
+                }
+
+                String fileName = System.currentTimeMillis() + "_" + originalFilename;
+                String filePath = directory.getAbsolutePath() + "\\" + fileName;
+
+                log.debug("Resim kaydediliyor: {}", filePath);
                 File dest = new File(filePath);
                 image.transferTo(dest);
 
-                // Resim URL'sini listeye ekle
-                imageUrls.add(fileName);
+                String imageUrl = "/uploads/products/" + productId + "/" + fileName;
+                imageUrls.add(imageUrl);
+                log.debug("Resim URL'si eklendi: {}", imageUrl);
             }
 
-            // Mevcut resimlere yeni resimleri ekle
             product.getImages().addAll(imageUrls);
-            return productRepository.save(product);
+            Product savedProduct = productRepository.save(product);
+            log.debug("Resim yükleme işlemi tamamlandı - Ürün ID: {}", productId);
+
+            return savedProduct;
         } catch (Exception e) {
+            log.error("Resim yükleme hatası: {}", e.getMessage(), e);
             throw new RuntimeException("Resimler yüklenirken bir hata oluştu: " + e.getMessage());
         }
     }

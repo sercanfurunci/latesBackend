@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         // Buyer endpoints
                         .requestMatchers("/api/v1/buyer/favorites/**").hasRole("BUYER")
                         .requestMatchers("/api/v1/buyer/**").hasRole("BUYER")

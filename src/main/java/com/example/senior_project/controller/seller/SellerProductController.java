@@ -16,9 +16,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/seller/products")
 @RequiredArgsConstructor
@@ -41,34 +43,10 @@ public class SellerProductController {
             @Valid @RequestBody ProductUpdateRequest request,
             @AuthenticationPrincipal User seller) {
         try {
-            // Debug için log ekleyelim
-            System.out.println("Update request received:");
-            System.out.println("Product ID: " + productId);
-            System.out.println("Seller ID: " + seller.getId());
-            System.out.println("Request Data: " + request.toString());
-
-            // Önce ürünün var olduğunu ve satıcıya ait olduğunu kontrol edelim
-            Product existingProduct = sellerProductService.getProductDetails(productId, seller);
-
-            if (!existingProduct.getSeller().getId().equals(seller.getId())) {
-                return ResponseEntity
-                        .status(HttpStatus.FORBIDDEN)
-                        .body("Bu ürün size ait değil");
-            }
-
             Product updatedProduct = sellerProductService.updateProduct(productId, request, seller);
             return ResponseEntity.ok(dtoConverter.toProductDTO(updatedProduct));
-
         } catch (RuntimeException e) {
-            System.out.println("Error in updateProduct: " + e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .body(e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Unexpected error in updateProduct: " + e.getMessage());
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Ürün güncellenirken bir hata oluştu");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
     }
 
@@ -95,10 +73,23 @@ public class SellerProductController {
     }
 
     @PostMapping("/{productId}/images")
-    public ResponseEntity<Product> uploadImages(
+    public ResponseEntity<?> uploadImages(
             @PathVariable Long productId,
             @RequestParam("images") List<MultipartFile> images,
             @AuthenticationPrincipal User seller) {
-        return ResponseEntity.ok(sellerProductService.uploadImages(productId, images, seller));
+        try {
+            log.debug("Resim yükleme isteği alındı - Ürün ID: {}, Satıcı: {}", productId, seller.getEmail());
+            log.debug("Resim sayısı: {}", images.size());
+
+            Product updatedProduct = sellerProductService.uploadImages(productId, images, seller);
+            return ResponseEntity.ok(dtoConverter.toProductDTO(updatedProduct));
+        } catch (RuntimeException e) {
+            log.error("Resim yükleme hatası: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Beklenmeyen hata: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Resim yüklenirken bir hata oluştu: " + e.getMessage());
+        }
     }
 }

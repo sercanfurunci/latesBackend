@@ -36,6 +36,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         log.debug("Processing request to: {}", request.getRequestURI());
         log.debug("Authorization header: {}", authHeader);
+        log.debug("Content-Type: {}", request.getContentType());
+
+        // Multipart istekler için özel kontrol
+        if (request.getContentType() != null && request.getContentType().startsWith("multipart/form-data")) {
+            log.debug("Processing multipart request");
+        }
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.debug("No JWT token found in request headers");
@@ -43,25 +49,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        jwt = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(jwt);
-        log.debug("JWT token found for user: {}", userEmail);
+        try {
+            jwt = authHeader.substring(7);
+            userEmail = jwtService.extractUsername(jwt);
+            log.debug("JWT token found for user: {}", userEmail);
 
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            var userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                log.debug("User authorities: {}", userDetails.getAuthorities());
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                var userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    log.debug("User authorities: {}", userDetails.getAuthorities());
 
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                log.debug("Authentication token set in SecurityContext");
+                    var authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    log.debug("Authentication token set in SecurityContext");
+                }
             }
+        } catch (Exception e) {
+            log.error("Error processing JWT token: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
+
         filterChain.doFilter(request, response);
     }
 }
