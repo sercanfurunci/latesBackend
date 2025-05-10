@@ -61,6 +61,7 @@ function ProductList() {
           api.get("/categories"),
         ]);
 
+        console.log("Products data:", productsRes.data.content);
         setProducts(productsRes.data.content);
         setCategories(categoriesRes.data);
 
@@ -342,7 +343,13 @@ function ProductList() {
             <div key={product.id} className="product-list-card">
               <div className="product-list-image">
                 <img
-                  src={`http://localhost:8080/${product.images[0]}`}
+                  src={
+                    product.images && product.images.length > 0
+                      ? `http://localhost:8080/uploads/products/${
+                          product.id
+                        }/${product.images[0].split("/").pop()}`
+                      : "/default-product.png"
+                  }
                   alt={product.title}
                   onClick={() => navigate(`/products/${product.id}`)}
                 />
