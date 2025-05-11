@@ -12,6 +12,8 @@ import lombok.EqualsAndHashCode;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -33,6 +35,8 @@ import java.util.Collections;
 @ToString(exclude = { "followers", "following", "addresses", "notifications" })
 @EqualsAndHashCode(exclude = { "followers", "following", "addresses", "notifications" })
 public class User implements UserDetails {
+    private static final Logger log = LoggerFactory.getLogger(User.class);
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -140,7 +144,9 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + userType.name()));
+        String role = "ROLE_" + userType.name();
+        log.debug("User authorities for {}: {}", email, role);
+        return List.of(new SimpleGrantedAuthority(role));
     }
 
     @Override

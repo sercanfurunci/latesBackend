@@ -21,7 +21,7 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -47,8 +47,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/buyer/favorites/**").hasRole("BUYER")
                         .requestMatchers("/api/v1/buyer/**").hasRole("BUYER")
                         // Seller endpoints
+                        .requestMatchers("/api/v1/seller/products/**").hasRole("SELLER")
                         .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
                         // Admin endpoints
+                        .requestMatchers("/api/v1/admin/products/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session

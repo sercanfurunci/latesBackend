@@ -15,8 +15,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -147,5 +153,42 @@ public class AdminProductService {
                                 "Ürününüz '" + product.getTitle() + "' reddedildi. " + message);
 
                 return product;
+        }
+
+        @Transactional
+        public void addProductImages(Long productId, List<MultipartFile> images) {
+                Product product = productRepository.findById(productId)
+                                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
+
+                // Mevcut resimleri koru ve yeni resimleri ekle
+                List<String> currentImages = product.getImages();
+                if (currentImages == null) {
+                        currentImages = new ArrayList<>();
+                }
+
+                // Yeni resimleri ekle
+                for (MultipartFile image : images) {
+                        if (!image.isEmpty()) {
+                                try {
+                                        String fileName = UUID.randomUUID().toString() + "_"
+                                                        + image.getOriginalFilename();
+                                        String uploadDir = "uploads/products/" + productId;
+                                        File directory = new File(uploadDir);
+                                        if (!directory.exists()) {
+                                                directory.mkdirs();
+                                        }
+                                        File destFile = new File(
+                                                        directory.getAbsolutePath() + File.separator + fileName);
+                                        image.transferTo(destFile);
+                                        currentImages.add("/uploads/products/" + productId + "/" + fileName);
+                                } catch (IOException e) {
+                                        throw new RuntimeException(
+                                                        "Resim yüklenirken bir hata oluştu: " + e.getMessage());
+                                }
+                        }
+                }
+
+                product.setImages(currentImages);
+                productRepository.save(product);
         }
 }

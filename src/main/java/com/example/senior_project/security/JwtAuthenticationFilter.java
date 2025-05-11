@@ -18,9 +18,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -34,45 +34,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
-        log.debug("Processing request to: {}", request.getRequestURI());
+        log.debug("Processing request: {} {}", request.getMethod(), request.getRequestURI());
         log.debug("Authorization header: {}", authHeader);
-        log.debug("Content-Type: {}", request.getContentType());
-
-        // Multipart istekler için özel kontrol
-        if (request.getContentType() != null && request.getContentType().startsWith("multipart/form-data")) {
-            log.debug("Processing multipart request");
-        }
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.debug("No JWT token found in request headers");
+            log.debug("No valid Authorization header found");
             filterChain.doFilter(request, response);
             return;
         }
 
+        jwt = authHeader.substring(7);
+        log.debug("Extracted JWT token: {}", jwt);
+
         try {
-            jwt = authHeader.substring(7);
             userEmail = jwtService.extractUsername(jwt);
-            log.debug("JWT token found for user: {}", userEmail);
+            log.debug("Extracted user email from token: {}", userEmail);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                var userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                if (jwtService.isTokenValid(jwt, userDetails)) {
-                    log.debug("User authorities: {}", userDetails.getAuthorities());
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                log.debug("Loaded user details: {}", userDetails);
+                log.debug("User authorities: {}", userDetails.getAuthorities());
 
-                    var authToken = new UsernamePasswordAuthenticationToken(
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    log.debug("Token is valid for user: {}", userEmail);
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
                             userDetails.getAuthorities());
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request));
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.debug("Authentication token set in SecurityContext");
+                    log.debug("Authentication set in SecurityContext");
+                } else {
+                    log.debug("Token is not valid for user: {}", userEmail);
                 }
             }
         } catch (Exception e) {
-            log.error("Error processing JWT token: {}", e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+            log.error("Error processing JWT token", e);
         }
 
         filterChain.doFilter(request, response);
