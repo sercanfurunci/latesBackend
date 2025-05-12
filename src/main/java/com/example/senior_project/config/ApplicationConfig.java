@@ -1,5 +1,6 @@
 package com.example.senior_project.config;
 
+import com.example.senior_project.model.User;
 import com.example.senior_project.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -41,4 +42,4 @@ public class ApplicationConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-} 
+}

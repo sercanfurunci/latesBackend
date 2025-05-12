@@ -173,4 +173,12 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return isActive && emailVerified;
     }
+
+    public Integer getFollowerCount() {
+        return followerCount;
+    }
+
+    public void setFollowerCount(Integer followerCount) {
+        this.followerCount = followerCount;
+    }
 }

@@ -35,11 +35,6 @@ public class JwtService {
 
         log.debug("Generating token for user: {} with role: {}", userDetails.getUsername(), role);
 
-        if (role.startsWith("ROLE_")) {
-            role = role.substring(5);
-            log.debug("Removed ROLE_ prefix: {}", role);
-        }
-
         extraClaims.put("role", role);
         extraClaims.put("authorities", List.of(role));
 
@@ -65,15 +60,10 @@ public class JwtService {
             log.debug("Validating token for user: {}", username);
             log.debug("Token role: {}, User role: {}", tokenRole, userRole);
 
-            String userRoleWithoutPrefix = userRole;
-            if (userRole != null && userRole.startsWith("ROLE_")) {
-                userRoleWithoutPrefix = userRole.substring(5);
-            }
-
             return (username.equals(userDetails.getUsername())) &&
                     !isTokenExpired(token) &&
                     tokenRole != null &&
-                    tokenRole.equals(userRoleWithoutPrefix);
+                    tokenRole.equals(userRole);
         } catch (Exception e) {
             log.error("Error validating token: {}", e.getMessage(), e);
             return false;
@@ -98,19 +88,6 @@ public class JwtService {
         }
     }
 
-    public boolean isTokenExpired(String token) {
-        try {
-            return extractExpiration(token).before(new Date());
-        } catch (Exception e) {
-            log.error("Error checking token expiration: {}", e.getMessage(), e);
-            return true;
-        }
-    }
-
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
-    }
-
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
@@ -125,6 +102,15 @@ public class JwtService {
     }
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+        byte[] keyBytes = jwtProperties.getSecret().getBytes();
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
+    }
+
+    private Date extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
     }
 }

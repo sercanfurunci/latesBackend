@@ -31,8 +31,15 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    @Transactional(readOnly = true)
     public User getProfile(Long userId) {
-        return userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Follower sayısını hesapla
+        int followerCount = user.getFollowers() != null ? user.getFollowers().size() : 0;
+        user.setFollowerCount(followerCount);
+
+        return user;
     }
 }
