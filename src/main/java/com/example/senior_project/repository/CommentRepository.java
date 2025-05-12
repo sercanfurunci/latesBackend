@@ -10,8 +10,8 @@ import java.util.List;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
-    @Query("SELECT AVG(c.rating) FROM Comment c WHERE c.product = :product")
-    Double getAverageRatingByProduct(Product product);
-    
     List<Comment> findByProduct(Product product);
-} 
+
+    @Query("SELECT AVG(c.rating) FROM Comment c WHERE c.product = ?1")
+    Double getAverageRatingByProduct(Product product);
+}

@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -30,23 +32,18 @@ public class Comment {
     @Column(nullable = false, length = 1000)
     private String content;
 
+    @Column(nullable = false)
     private Integer rating;
 
-    @Column(nullable = false)
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
     @Column(length = 1000)
     private String sellerReply;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-} 
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+}
