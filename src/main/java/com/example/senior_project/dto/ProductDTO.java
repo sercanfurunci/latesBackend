@@ -1,5 +1,7 @@
 package com.example.senior_project.dto;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -16,19 +18,27 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class ProductDTO {
     private Long id;
-    private String title;
+    private String name;
     private String description;
-    private Double price;
-    private Integer stock;
-    private ProductStatus status;
+    private BigDecimal price;
+    private String category;
+    private String condition;
     private List<String> images;
+    private Long sellerId;
+    private String sellerName;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private boolean isActive;
+    private boolean isAvailable;
+    private int stock;
+    private double rating;
+    private int reviewCount;
+    private ProductStatus status;
     private Set<String> tags;
     private Long categoryId;
     private String categoryName;
-    private Long sellerId;
-    private String sellerName;
     private String ingredients;
     private String preparationTime;
     private String shippingDetails;
     private ProductType type;
-} 
+}

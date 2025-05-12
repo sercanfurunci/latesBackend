@@ -40,8 +40,14 @@ public class BuyerService {
         seller.getFollowers().add(buyer);
 
         // Update follower counts
-        seller.setFollowerCount(seller.getFollowerCount() + 1);
-        buyer.setFollowingCount(buyer.getFollowingCount() + 1);
+        Integer sellerFollowerCount = seller.getFollowerCount();
+        if (sellerFollowerCount == null)
+            sellerFollowerCount = 0;
+        seller.setFollowerCount(sellerFollowerCount + 1);
+        Integer buyerFollowingCount = buyer.getFollowingCount();
+        if (buyerFollowingCount == null)
+            buyerFollowingCount = 0;
+        buyer.setFollowingCount(buyerFollowingCount + 1);
 
         userRepository.save(buyer);
         userRepository.save(seller);
@@ -64,8 +70,14 @@ public class BuyerService {
         seller.getFollowers().remove(buyer);
 
         // Update follower counts
-        seller.setFollowerCount(seller.getFollowerCount() - 1);
-        buyer.setFollowingCount(buyer.getFollowingCount() - 1);
+        Integer sellerFollowerCount = seller.getFollowerCount();
+        if (sellerFollowerCount == null)
+            sellerFollowerCount = 0;
+        seller.setFollowerCount(Math.max(0, sellerFollowerCount - 1));
+        Integer buyerFollowingCount = buyer.getFollowingCount();
+        if (buyerFollowingCount == null)
+            buyerFollowingCount = 0;
+        buyer.setFollowingCount(Math.max(0, buyerFollowingCount - 1));
 
         userRepository.save(buyer);
         userRepository.save(seller);

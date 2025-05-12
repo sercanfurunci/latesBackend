@@ -90,6 +90,7 @@ public class User implements UserDetails {
     private Set<User> following = new HashSet<>();
 
     @Column(name = "follower_count")
+    @Builder.Default
     private Integer followerCount = 0;
 
     @Column(name = "following_count")
