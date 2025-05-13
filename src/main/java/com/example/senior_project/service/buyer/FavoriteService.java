@@ -5,6 +5,7 @@ import com.example.senior_project.model.Product;
 import com.example.senior_project.model.User;
 import com.example.senior_project.repository.FavoriteRepository;
 import com.example.senior_project.repository.ProductRepository;
+import com.example.senior_project.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import java.util.List;
 public class FavoriteService {
     private final FavoriteRepository favoriteRepository;
     private final ProductRepository productRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public Favorite addToFavorites(Long productId, User user) {
@@ -29,7 +31,15 @@ public class FavoriteService {
         Favorite favorite = new Favorite();
         favorite.setUser(user);
         favorite.setProduct(product);
-        return favoriteRepository.save(favorite);
+        Favorite savedFavorite = favoriteRepository.save(favorite);
+
+        // Bildirim gönder
+        if (!user.getId().equals(product.getSeller().getId())) {
+            notificationService.sendProductFavoritedNotification(user, product.getSeller(), product.getTitle(),
+                    product.getId());
+        }
+
+        return savedFavorite;
     }
 
     @Transactional

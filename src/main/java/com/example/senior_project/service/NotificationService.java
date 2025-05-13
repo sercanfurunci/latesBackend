@@ -202,4 +202,28 @@ public class NotificationService {
 
         notificationRepository.save(notification);
     }
+
+    public void sendUserFollowNotification(User follower, User followedUser) {
+        String message = String.format("%s %s seni takip etti.", follower.getFirstName(), follower.getLastName());
+        String link = "/profile/" + follower.getId();
+        createNotification(NotificationRequest.builder()
+                .user(followedUser)
+                .type(NotificationType.SYSTEM_MESSAGE)
+                .message(message)
+                .link(link)
+                .build());
+    }
+
+    public void sendProductFavoritedNotification(User userWhoFavorited, User productOwner, String productName,
+            Long productId) {
+        String message = String.format("%s %s ürününü favorilere ekledi: %s",
+                userWhoFavorited.getFirstName(), userWhoFavorited.getLastName(), productName);
+        String link = "/products/" + productId;
+        createNotification(NotificationRequest.builder()
+                .user(productOwner)
+                .type(NotificationType.SYSTEM_MESSAGE)
+                .message(message)
+                .link(link)
+                .build());
+    }
 }

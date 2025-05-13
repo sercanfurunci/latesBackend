@@ -3,6 +3,7 @@ package com.example.senior_project.service.buyer;
 import com.example.senior_project.model.User;
 import com.example.senior_project.model.UserType;
 import com.example.senior_project.repository.UserRepository;
+import com.example.senior_project.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BuyerService {
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<User> getFollowing(User buyer) {
@@ -51,6 +53,9 @@ public class BuyerService {
 
         userRepository.save(buyer);
         userRepository.save(seller);
+
+        // Bildirim gönder
+        notificationService.sendUserFollowNotification(buyer, seller);
     }
 
     @Transactional

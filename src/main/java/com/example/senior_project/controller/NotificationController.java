@@ -25,4 +25,18 @@ public class NotificationController {
     public ResponseEntity<List<Notification>> getUnreadNotifications(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(notificationRepository.findByUserAndIsReadFalse(user));
     }
-} 
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal User user) {
+        long count = notificationRepository.findByUserAndIsReadFalse(user).size();
+        return ResponseEntity.ok(count);
+    }
+
+    @PostMapping("/mark-all-read")
+    public ResponseEntity<Void> markAllAsRead(@AuthenticationPrincipal User user) {
+        notificationRepository.findByUserAndIsReadFalse(user)
+                .forEach(n -> n.setIsRead(true));
+        notificationRepository.flush();
+        return ResponseEntity.ok().build();
+    }
+}

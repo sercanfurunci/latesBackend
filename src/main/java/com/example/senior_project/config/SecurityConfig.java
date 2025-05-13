@@ -60,6 +60,9 @@ public class SecurityConfig {
                         // Admin endpoints
                         .requestMatchers("/api/v1/admin/products/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        // Notification endpoints
+                        .requestMatchers("/api/v1/notifications/mark-all-read").authenticated()
+                        .requestMatchers("/api/v1/notifications/**").authenticated()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
