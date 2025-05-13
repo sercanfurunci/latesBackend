@@ -33,6 +33,10 @@ public class CommentService {
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
 
+        if (product.getSeller().getId().equals(user.getId())) {
+            throw new RuntimeException("Kendi ürününüze yorum yapamazsınız");
+        }
+
         Comment comment = new Comment();
         comment.setContent(request.getContent());
         comment.setRating(request.getRating());
@@ -54,13 +58,28 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Yorum bulunamadı"));
 
-        if (!comment.getUser().getId().equals(user.getId())) {
+        if (!comment.getUser().getId().equals(user.getId()) &&
+                !comment.getProduct().getSeller().getId().equals(user.getId())) {
             throw new RuntimeException("Bu yorumu silme yetkiniz yok");
         }
 
         comment.setActive(false);
         comment.setUpdatedAt(LocalDateTime.now());
         commentRepository.save(comment);
+    }
+
+    @Transactional
+    public Comment addSellerReply(Long commentId, String reply, User seller) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Yorum bulunamadı"));
+
+        if (!comment.getProduct().getSeller().getId().equals(seller.getId())) {
+            throw new RuntimeException("Bu yorumu yanıtlama yetkiniz yok");
+        }
+
+        comment.setSellerReply(reply);
+        comment.setUpdatedAt(LocalDateTime.now());
+        return commentRepository.save(comment);
     }
 
     private void updateProductRating(Product product) {

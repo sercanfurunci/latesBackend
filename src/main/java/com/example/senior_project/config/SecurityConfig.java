@@ -38,15 +38,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/*/comments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/buyer/comments/product/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/buyer/comments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/profiles/**").permitAll()
                         .requestMatchers("/static/**").permitAll()
-                        // Buyer endpoints - Spesifik endpointler önce
+                        // Comment endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/v1/buyer/comments/*/reply").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/buyer/comments").hasAnyRole("BUYER", "SELLER")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/buyer/comments/**").hasAnyRole("BUYER", "SELLER")
+                        // Buyer endpoints
                         .requestMatchers(HttpMethod.POST, "/api/v1/buyer/follow/**").hasRole("BUYER")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/buyer/unfollow/**").hasRole("BUYER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/buyer/following").hasRole("BUYER")

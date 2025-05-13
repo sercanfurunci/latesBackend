@@ -1,10 +1,10 @@
 package com.example.senior_project.controller.buyer;
 
 import com.example.senior_project.dto.CommentRequest;
+import com.example.senior_project.dto.SellerReplyRequest;
 import com.example.senior_project.model.Comment;
 import com.example.senior_project.model.User;
 import com.example.senior_project.service.buyer.CommentService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,7 +25,7 @@ public class CommentController {
 
     @PostMapping
     public ResponseEntity<Comment> addComment(
-            @Valid @RequestBody CommentRequest request,
+            @RequestBody CommentRequest request,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(commentService.addComment(request, user));
     }
@@ -36,5 +36,13 @@ public class CommentController {
             @AuthenticationPrincipal User user) {
         commentService.deleteComment(commentId, user);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{commentId}/reply")
+    public ResponseEntity<Comment> addSellerReply(
+            @PathVariable Long commentId,
+            @RequestBody SellerReplyRequest request,
+            @AuthenticationPrincipal User seller) {
+        return ResponseEntity.ok(commentService.addSellerReply(commentId, request.getReply(), seller));
     }
 }
