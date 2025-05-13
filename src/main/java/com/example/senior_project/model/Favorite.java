@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "favorites")
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Favorite {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,4 +34,4 @@ public class Favorite {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
-} 
+}

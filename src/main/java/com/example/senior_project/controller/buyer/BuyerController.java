@@ -1,7 +1,9 @@
 package com.example.senior_project.controller.buyer;
 
 import com.example.senior_project.model.User;
+import com.example.senior_project.model.Favorite;
 import com.example.senior_project.service.buyer.BuyerService;
+import com.example.senior_project.service.buyer.FavoriteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,6 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BuyerController {
     private final BuyerService buyerService;
+    private final FavoriteService favoriteService;
 
     private User getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -43,6 +46,27 @@ public class BuyerController {
     public ResponseEntity<Void> unfollowSeller(@PathVariable Long sellerId) {
         User buyer = getAuthenticatedUser();
         buyerService.unfollowSeller(sellerId, buyer);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/favorites")
+    public ResponseEntity<List<Favorite>> getFavorites() {
+        User buyer = getAuthenticatedUser();
+        return ResponseEntity.ok(favoriteService.getUserFavorites(buyer));
+    }
+
+    @PostMapping("/favorites/toggle/{productId}")
+    public ResponseEntity<Void> toggleFavorite(@PathVariable Long productId) {
+        User buyer = getAuthenticatedUser();
+        try {
+            favoriteService.addToFavorites(productId, buyer);
+        } catch (RuntimeException e) {
+            if (e.getMessage().equals("Bu ürün zaten favorilerinizde")) {
+                favoriteService.removeFromFavorites(productId, buyer);
+            } else {
+                throw e;
+            }
+        }
         return ResponseEntity.ok().build();
     }
 }

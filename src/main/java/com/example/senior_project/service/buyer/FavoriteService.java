@@ -48,4 +48,4 @@ public class FavoriteService {
     public List<Favorite> getUserFavorites(User user) {
         return favoriteRepository.findByUserOrderByCreatedAtDesc(user);
     }
-} 
+}

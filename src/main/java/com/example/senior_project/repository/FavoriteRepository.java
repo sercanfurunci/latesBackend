@@ -12,9 +12,9 @@ import java.util.List;
 @Repository
 public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     boolean existsByUserAndProduct(User user, Product product);
-    
+
     @Transactional
     void deleteByUserAndProduct(User user, Product product);
-    
+
     List<Favorite> findByUserOrderByCreatedAtDesc(User user);
-} 
+}
