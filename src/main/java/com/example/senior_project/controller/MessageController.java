@@ -39,4 +39,42 @@ public class MessageController {
         messageService.markAsRead(messageId, currentUser);
         return ResponseEntity.ok().build();
     }
-} 
+
+    @PostMapping("/mark-all-read")
+    public ResponseEntity<Void> markAllMessagesAsRead(@AuthenticationPrincipal User currentUser) {
+        messageService.markAllMessagesAsRead(currentUser.getId());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{messageId}/mark-read")
+    public ResponseEntity<Void> markMessageAsRead(
+            @PathVariable Long messageId,
+            @AuthenticationPrincipal User currentUser) {
+        messageService.markMessageAsRead(messageId, currentUser.getId());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{messageId}/unmark-read")
+    public ResponseEntity<Void> unmarkMessageAsRead(
+            @PathVariable Long messageId,
+            @AuthenticationPrincipal User currentUser) {
+        messageService.unmarkMessageAsRead(messageId, currentUser.getId());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/unmark-all-read")
+    public ResponseEntity<Void> unmarkAllMessagesAsRead(@AuthenticationPrincipal User currentUser) {
+        messageService.unmarkAllMessagesAsRead(currentUser.getId());
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Message>> getAllMessages(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(messageService.getAllMessages(currentUser));
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<Long> getUnreadMessagesCount(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(messageService.getUnreadMessagesCount(currentUser));
+    }
+}

@@ -44,6 +44,9 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/profiles/**").permitAll()
                         .requestMatchers("/static/**").permitAll()
+                        // Bildirimler ve Mesajlar
+                        .requestMatchers("/api/v1/notifications/**").authenticated()
+                        .requestMatchers("/api/v1/messages/**").authenticated()
                         // Comment endpoints
                         .requestMatchers(HttpMethod.POST, "/api/v1/buyer/comments/*/reply").hasRole("SELLER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/buyer/comments").hasAnyRole("BUYER", "SELLER")
@@ -53,16 +56,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/buyer/unfollow/**").hasRole("BUYER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/buyer/following").hasRole("BUYER")
                         .requestMatchers("/api/v1/buyer/favorites/**").hasRole("BUYER")
-                        .requestMatchers("/api/v1/buyer/**").hasRole("BUYER")
                         // Seller endpoints
-                        .requestMatchers("/api/v1/seller/products/**").hasRole("SELLER")
                         .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
                         // Admin endpoints
-                        .requestMatchers("/api/v1/admin/products/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        // Notification endpoints
-                        .requestMatchers("/api/v1/notifications/mark-all-read").authenticated()
-                        .requestMatchers("/api/v1/notifications/**").authenticated()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

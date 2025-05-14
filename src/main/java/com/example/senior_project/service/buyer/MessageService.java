@@ -41,7 +41,7 @@ public class MessageService {
 
         Message savedMessage = messageRepository.save(message);
         notificationService.notifyNewMessage(receiver, "New message received");
-        
+
         return savedMessage;
     }
 
@@ -60,4 +60,48 @@ public class MessageService {
         message.setRead(true);
         messageRepository.save(message);
     }
-} 
+
+    public List<Message> getAllMessages(User currentUser) {
+        return messageRepository.findAllBySenderIdOrReceiverId(currentUser.getId(), currentUser.getId());
+    }
+
+    public Long getUnreadMessagesCount(User currentUser) {
+        return messageRepository.countByReceiverIdAndIsReadFalse(currentUser.getId());
+    }
+
+    public void markAllMessagesAsRead(Long userId) {
+        List<Message> unreadMessages = messageRepository.findAllByReceiverIdAndIsReadFalse(userId);
+        for (Message message : unreadMessages) {
+            message.setRead(true);
+        }
+        messageRepository.saveAll(unreadMessages);
+    }
+
+    public void markMessageAsRead(Long messageId, Long userId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        if (!message.getReceiver().getId().equals(userId)) {
+            throw new RuntimeException("Not authorized to mark this message as read");
+        }
+        message.setRead(true);
+        messageRepository.save(message);
+    }
+
+    public void unmarkMessageAsRead(Long messageId, Long userId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        if (!message.getReceiver().getId().equals(userId)) {
+            throw new RuntimeException("Not authorized to unmark this message as read");
+        }
+        message.setRead(false);
+        messageRepository.save(message);
+    }
+
+    public void unmarkAllMessagesAsRead(Long userId) {
+        List<Message> readMessages = messageRepository.findAllByReceiverIdAndIsReadTrue(userId);
+        for (Message message : readMessages) {
+            message.setRead(false);
+        }
+        messageRepository.saveAll(readMessages);
+    }
+}
