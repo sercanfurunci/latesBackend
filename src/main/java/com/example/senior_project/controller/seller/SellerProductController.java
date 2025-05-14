@@ -17,6 +17,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.extern.slf4j.Slf4j;
+import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -42,11 +45,20 @@ public class SellerProductController {
             @PathVariable Long productId,
             @Valid @RequestBody ProductUpdateRequest request,
             @AuthenticationPrincipal User seller) {
+        log.debug("GÜNCELLEME ENDPOINTİ ÇAĞRILDI, seller: {}", seller);
+        if (seller == null) {
+            log.error("AuthenticationPrincipal seller NULL geldi!");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse("Kullanıcı doğrulanamadı (seller null)!"));
+        }
         try {
+            log.debug("Updating product with ID: {} for seller: {}", productId, seller.getEmail());
             Product updatedProduct = sellerProductService.updateProduct(productId, request, seller);
             return ResponseEntity.ok(dtoConverter.toProductDTO(updatedProduct));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            log.error("Error updating product: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse("Ürün güncellenirken bir hata oluştu: " + e.getMessage()));
         }
     }
 
@@ -91,5 +103,26 @@ public class SellerProductController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Resim yüklenirken bir hata oluştu: " + e.getMessage());
         }
+    }
+
+    @DeleteMapping("/{productId}/images")
+    public ResponseEntity<?> deleteProductImages(
+            @PathVariable Long productId,
+            @AuthenticationPrincipal User seller) {
+        try {
+            sellerProductService.deleteProductImages(productId, seller);
+            return ResponseEntity.ok().body("Ürün görselleri silindi");
+        } catch (RuntimeException e) {
+            log.error("Görseller silinirken hata: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse("Görseller silinirken bir hata oluştu: " + e.getMessage()));
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    private static class ErrorResponse {
+        private String message;
     }
 }

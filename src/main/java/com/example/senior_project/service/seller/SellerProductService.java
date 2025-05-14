@@ -61,49 +61,46 @@ public class SellerProductService {
 
     @Transactional
     public Product updateProduct(Long productId, ProductUpdateRequest request, User seller) {
-        try {
-            log.debug("Updating product with ID: {} for seller: {}", productId, seller.getEmail());
-            log.debug("Update request: {}", request);
+        log.debug("Updating product with ID: {} for seller: {}", productId, seller.getEmail());
 
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
 
-            log.debug("Found product: {}", product);
-            log.debug("Product seller ID: {}, Request seller ID: {}",
-                    product.getSeller().getId(), seller.getId());
-
-            if (!product.getSeller().getId().equals(seller.getId())) {
-                log.warn("Unauthorized update attempt by seller: {} for product: {}",
-                        seller.getEmail(), productId);
-                throw new RuntimeException("Bu ürünü düzenleme yetkiniz yok");
-            }
-
-            if (request.getCategoryId() != null) {
-                Category category = categoryRepository.findById(request.getCategoryId())
-                        .orElseThrow(() -> new RuntimeException("Kategori bulunamadı"));
-                product.setCategory(category);
-            }
-
-            // Update fields if they are not null
-            if (request.getTitle() != null && !request.getTitle().trim().isEmpty())
-                product.setTitle(request.getTitle().trim());
-            if (request.getDescription() != null && !request.getDescription().trim().isEmpty())
-                product.setDescription(request.getDescription().trim());
-            if (request.getPrice() != null && request.getPrice() > 0)
-                product.setPrice(request.getPrice());
-            if (request.getStock() != null && request.getStock() >= 0)
-                product.setStock(request.getStock());
-            if (request.getStatus() != null)
-                product.setStatus(request.getStatus());
-            if (request.getShippingDetails() != null && !request.getShippingDetails().trim().isEmpty())
-                product.setShippingDetails(request.getShippingDetails().trim());
-
-            log.debug("Product updated successfully: {}", product);
-            return productRepository.save(product);
-        } catch (Exception e) {
-            log.error("Error updating product: {}", e.getMessage(), e);
-            throw new RuntimeException("Ürün güncellenirken bir hata oluştu: " + e.getMessage());
+        // Yetki kontrolü
+        if (!product.getSeller().getId().equals(seller.getId())) {
+            log.warn("Unauthorized update attempt by seller: {} for product: {}", seller.getEmail(), productId);
+            throw new RuntimeException("Bu ürünü düzenleme yetkiniz yok");
         }
+
+        // Kategori kontrolü
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Kategori bulunamadı"));
+            product.setCategory(category);
+        }
+
+        // Alan güncellemeleri
+        if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
+            product.setTitle(request.getTitle().trim());
+        }
+        if (request.getDescription() != null && !request.getDescription().trim().isEmpty()) {
+            product.setDescription(request.getDescription().trim());
+        }
+        if (request.getPrice() != null && request.getPrice() > 0) {
+            product.setPrice(request.getPrice());
+        }
+        if (request.getStock() != null && request.getStock() >= 0) {
+            product.setStock(request.getStock());
+        }
+        if (request.getStatus() != null) {
+            product.setStatus(request.getStatus());
+        }
+        if (request.getShippingDetails() != null && !request.getShippingDetails().trim().isEmpty()) {
+            product.setShippingDetails(request.getShippingDetails().trim());
+        }
+
+        log.debug("Product updated successfully: {}", product);
+        return productRepository.save(product);
     }
 
     @Transactional
@@ -212,5 +209,26 @@ public class SellerProductService {
             log.error("Resim yükleme hatası: {}", e.getMessage(), e);
             throw new RuntimeException("Resimler yüklenirken bir hata oluştu: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public void deleteProductImages(Long productId, User seller) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
+        if (!product.getSeller().getId().equals(seller.getId())) {
+            throw new RuntimeException("Bu ürünü düzenleme yetkiniz yok");
+        }
+        // Dosya sisteminden silme işlemi (düzeltilmiş yol)
+        for (String imageUrl : product.getImages()) {
+            String relativePath = imageUrl.startsWith("/uploads/") ? imageUrl.substring("/uploads/".length())
+                    : imageUrl;
+            String filePath = uploadDir + File.separator + relativePath.replace("/", File.separator);
+            File file = new File(filePath);
+            if (file.exists()) {
+                file.delete();
+            }
+        }
+        product.getImages().clear();
+        productRepository.save(product);
     }
 }
