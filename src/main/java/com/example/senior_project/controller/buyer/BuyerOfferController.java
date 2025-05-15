@@ -37,4 +37,12 @@ public class BuyerOfferController {
         buyerOfferService.cancelOffer(offerId, buyer);
         return ResponseEntity.ok().build();
     }
-} 
+
+    @GetMapping("/{offerId}")
+    public ResponseEntity<Offer> getOfferById(
+            @PathVariable Long offerId,
+            @AuthenticationPrincipal User buyer) {
+        Offer offer = buyerOfferService.getOfferById(offerId, buyer);
+        return ResponseEntity.ok(offer);
+    }
+}

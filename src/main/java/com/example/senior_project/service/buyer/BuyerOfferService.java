@@ -31,7 +31,7 @@ public class BuyerOfferService {
 
             Offer offer = createOffer(product, buyer, request);
             Offer savedOffer = offerRepository.save(offer);
-            
+
             sendNotification(savedOffer);
 
             return savedOffer;
@@ -116,4 +116,13 @@ public class BuyerOfferService {
             throw new RuntimeException("Teklif iptal edilirken bir hata oluştu: " + e.getMessage());
         }
     }
-} 
+
+    public Offer getOfferById(Long offerId, User buyer) {
+        Offer offer = offerRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Teklif bulunamadı"));
+        if (!offer.getBuyer().getId().equals(buyer.getId())) {
+            throw new RuntimeException("Yetkisiz erişim");
+        }
+        return offer;
+    }
+}

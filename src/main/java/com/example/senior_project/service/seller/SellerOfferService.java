@@ -36,9 +36,9 @@ public class SellerOfferService {
 
             offer.setStatus(OfferStatus.ACCEPTED);
             Offer savedOffer = offerRepository.save(offer);
-            
+
             notificationService.sendOfferNotification(savedOffer, NotificationType.OFFER_ACCEPTED);
-            
+
             return savedOffer;
         } catch (Exception e) {
             log.error("Teklif kabul edilirken hata: {}", e.getMessage());
@@ -58,13 +58,22 @@ public class SellerOfferService {
 
             offer.setStatus(OfferStatus.REJECTED);
             Offer savedOffer = offerRepository.save(offer);
-            
+
             notificationService.sendOfferNotification(savedOffer, NotificationType.OFFER_REJECTED);
-            
+
             return savedOffer;
         } catch (Exception e) {
             log.error("Teklif reddedilirken hata: {}", e.getMessage());
             throw new RuntimeException("Teklif reddedilirken bir hata oluştu");
         }
     }
-} 
+
+    public Offer getOfferById(Long offerId, User seller) {
+        Offer offer = offerRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Teklif bulunamadı"));
+        if (!offer.getProduct().getSeller().getId().equals(seller.getId())) {
+            throw new RuntimeException("Yetkisiz erişim");
+        }
+        return offer;
+    }
+}

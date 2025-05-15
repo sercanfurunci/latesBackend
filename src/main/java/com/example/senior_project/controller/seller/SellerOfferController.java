@@ -37,4 +37,12 @@ public class SellerOfferController {
             @AuthenticationPrincipal User seller) {
         return ResponseEntity.ok(sellerOfferService.rejectOffer(offerId, seller));
     }
-} 
+
+    @GetMapping("/{offerId}")
+    public ResponseEntity<Offer> getOfferById(
+            @PathVariable Long offerId,
+            @AuthenticationPrincipal User seller) {
+        Offer offer = sellerOfferService.getOfferById(offerId, seller);
+        return ResponseEntity.ok(offer);
+    }
+}
