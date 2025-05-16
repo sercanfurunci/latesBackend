@@ -23,40 +23,61 @@ public class BuyerOfferService {
     private final NotificationService notificationService;
 
     public Offer makeOffer(OfferRequest request, User buyer) {
-        try {
-            Product product = productRepository.findById(request.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
+        log.info("Teklif oluşturma başladı - Ürün ID: {}, Alıcı: {}, Teklif Tutarı: {}",
+                request.getProductId(), buyer.getEmail(), request.getOfferAmount());
 
-            validateOffer(product, buyer, request);
+        Product product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
 
-            Offer offer = createOffer(product, buyer, request);
-            Offer savedOffer = offerRepository.save(offer);
+        validateOffer(product, buyer, request);
 
-            sendNotification(savedOffer);
+        Offer offer = createOffer(product, buyer, request);
+        Offer savedOffer = offerRepository.save(offer);
 
-            return savedOffer;
-        } catch (Exception e) {
-            throw new RuntimeException("Teklif oluşturulurken bir hata oluştu: " + e.getMessage());
-        }
+        sendNotification(savedOffer);
+        log.info("Teklif başarıyla oluşturuldu - Teklif ID: {}", savedOffer.getId());
+
+        return savedOffer;
     }
 
     private void validateOffer(Product product, User buyer, OfferRequest request) {
+        // Kullanıcı kontrolü
+        if (buyer == null) {
+            throw new RuntimeException("Kullanıcı bulunamadı");
+        }
+
+        // Ürün durumu kontrolü
         if (product.getStatus() != ProductStatus.AVAILABLE) {
             throw new RuntimeException("Ürün şu anda teklife açık değil");
         }
 
+        // Stok kontrolü
         if (product.getStock() <= 0) {
             throw new RuntimeException("Ürün stokta yok");
         }
 
+        // Kendi ürününe teklif verme kontrolü
         if (product.getSeller().getId().equals(buyer.getId())) {
             throw new RuntimeException("Kendi ürününüze teklif veremezsiniz");
         }
 
-        if (request.getOfferAmount() <= 0 || request.getOfferAmount() > product.getPrice()) {
-            throw new RuntimeException("Geçersiz teklif tutarı");
+        // Teklif tutarı kontrolü
+        if (request.getOfferAmount() == null) {
+            throw new RuntimeException("Teklif tutarı boş olamaz");
         }
 
+        if (request.getOfferAmount() <= 0) {
+            throw new RuntimeException("Teklif tutarı 0'dan büyük olmalıdır");
+        }
+
+        // Ürün fiyatı kontrolü - Teklif tutarı ürün fiyatından büyük olamaz
+        if (request.getOfferAmount() > product.getPrice()) {
+            throw new RuntimeException(String.format(
+                    "Teklif tutarı ürün fiyatından (%.2f TL) büyük olamaz",
+                    product.getPrice()));
+        }
+
+        // Aktif teklif kontrolü
         List<Offer> activeOffers = offerRepository.findByBuyerAndProductAndStatus(
                 buyer, product, OfferStatus.PENDING);
         if (!activeOffers.isEmpty()) {
@@ -75,54 +96,61 @@ public class BuyerOfferService {
     }
 
     private void sendNotification(Offer offer) {
-        NotificationRequest request = NotificationRequest.builder()
-                .user(offer.getProduct().getSeller())
-                .type(NotificationType.NEW_OFFER)
-                .message(String.format("%s %s ürününüz için %.2f TL teklif verdi",
-                        offer.getBuyer().getFirstName(),
-                        offer.getBuyer().getLastName(),
-                        offer.getOfferAmount()))
-                .link("/offers/" + offer.getId())
-                .build();
+        try {
+            NotificationRequest request = NotificationRequest.builder()
+                    .user(offer.getProduct().getSeller())
+                    .type(NotificationType.NEW_OFFER)
+                    .message(String.format("%s %s ürününüz için %.2f TL teklif verdi",
+                            offer.getBuyer().getFirstName(),
+                            offer.getBuyer().getLastName(),
+                            offer.getOfferAmount()))
+                    .link("/offers/" + offer.getId())
+                    .build();
 
-        notificationService.createNotification(request);
+            notificationService.createNotification(request);
+            log.info("Bildirim gönderildi - Teklif ID: {}", offer.getId());
+        } catch (Exception e) {
+            log.error("Bildirim gönderme hatası: {}", e.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)
     public List<Offer> getBuyerOffers(User buyer) {
+        if (buyer == null) {
+            throw new RuntimeException("Kullanıcı bulunamadı");
+        }
         return offerRepository.findByBuyerOrderByCreatedAtDesc(buyer);
     }
 
     @Transactional
     public void cancelOffer(Long offerId, User buyer) {
-        try {
-            Offer offer = offerRepository.findById(offerId)
-                    .orElseThrow(() -> new RuntimeException("Teklif bulunamadı"));
+        log.info("Teklif iptal işlemi başladı - Teklif ID: {}, Alıcı: {}", offerId, buyer.getEmail());
 
-            if (!offer.getBuyer().equals(buyer)) {
-                throw new RuntimeException("Bu teklifi iptal etme yetkiniz yok");
-            }
+        Offer offer = offerRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Teklif bulunamadı"));
 
-            if (offer.getStatus() == OfferStatus.ACCEPTED) {
-                throw new RuntimeException("Kabul edilmiş teklifler iptal edilemez");
-            }
-
-            offer.setStatus(OfferStatus.CANCELLED);
-            offerRepository.save(offer);
-
-            log.info("Teklif iptal edildi. Teklif ID: {}, Alıcı: {}", offerId, buyer.getEmail());
-        } catch (Exception e) {
-            log.error("Teklif iptal edilirken hata: {}", e.getMessage());
-            throw new RuntimeException("Teklif iptal edilirken bir hata oluştu: " + e.getMessage());
+        if (!offer.getBuyer().equals(buyer)) {
+            throw new RuntimeException("Bu teklifi iptal etme yetkiniz yok");
         }
+
+        if (offer.getStatus() != OfferStatus.PENDING) {
+            throw new RuntimeException("Sadece bekleyen teklifler iptal edilebilir");
+        }
+
+        offer.setStatus(OfferStatus.CANCELLED);
+        offerRepository.save(offer);
+
+        log.info("Teklif başarıyla iptal edildi - Teklif ID: {}", offerId);
     }
 
     public Offer getOfferById(Long offerId, User buyer) {
         Offer offer = offerRepository.findById(offerId)
                 .orElseThrow(() -> new RuntimeException("Teklif bulunamadı"));
+
         if (!offer.getBuyer().getId().equals(buyer.getId())) {
             throw new RuntimeException("Yetkisiz erişim");
         }
+
         return offer;
     }
 }
