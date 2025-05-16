@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import com.example.senior_project.dto.CartResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -86,5 +87,23 @@ public class CartService {
 
     public Double getTotalAmount(User user) {
         return cartRepository.getTotalAmount(user.getId());
+    }
+
+    public List<CartResponse> getCartResponses(User user) {
+        List<Cart> cartItems = cartRepository.findByUserId(user.getId());
+        List<CartResponse> responses = new java.util.ArrayList<>();
+        for (Cart cart : cartItems) {
+            CartResponse resp = new CartResponse();
+            resp.setId(cart.getId());
+            resp.setProduct(cart.getProduct());
+            resp.setQuantity(cart.getQuantity());
+            resp.setPrice(cart.getPrice());
+            Offer acceptedOffer = offerRepository
+                    .findByBuyerAndProductAndStatus(user, cart.getProduct(), OfferStatus.ACCEPTED)
+                    .stream().findFirst().orElse(null);
+            resp.setAcceptedOfferId(acceptedOffer != null ? acceptedOffer.getId() : null);
+            responses.add(resp);
+        }
+        return responses;
     }
 }

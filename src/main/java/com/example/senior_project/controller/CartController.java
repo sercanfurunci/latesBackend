@@ -2,6 +2,7 @@
 package com.example.senior_project.controller;
 
 import com.example.senior_project.dto.CartRequest; // Import ekleyelim
+import com.example.senior_project.dto.CartResponse;
 import com.example.senior_project.model.Cart;
 import com.example.senior_project.model.User;
 import com.example.senior_project.service.CartService;
@@ -19,8 +20,8 @@ public class CartController {
     private final CartService cartService;
 
     @GetMapping
-    public ResponseEntity<List<Cart>> getCartItems(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(cartService.getCartItems(user));
+    public ResponseEntity<List<CartResponse>> getCartItems(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(cartService.getCartResponses(user));
     }
 
     @PostMapping("/add")
@@ -34,7 +35,8 @@ public class CartController {
     public ResponseEntity<Cart> updateQuantity(
             @AuthenticationPrincipal User user,
             @PathVariable Long productId,
-            @RequestParam Integer quantity) {
+            @RequestBody java.util.Map<String, Integer> body) {
+        Integer quantity = body.get("quantity");
         Cart updatedCart = cartService.updateQuantity(user, productId, quantity);
         return updatedCart != null ? ResponseEntity.ok(updatedCart) : ResponseEntity.ok().build();
     }
@@ -49,6 +51,6 @@ public class CartController {
 
     @GetMapping("/total")
     public ResponseEntity<Double> getTotalAmount(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(cartService.getTotalAmount(user.getId()));
+        return ResponseEntity.ok(cartService.getTotalAmount(user));
     }
 }

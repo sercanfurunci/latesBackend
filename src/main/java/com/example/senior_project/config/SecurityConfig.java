@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/buyer/following").hasRole("BUYER")
                         .requestMatchers("/api/v1/buyer/favorites/**").hasRole("BUYER")
                         .requestMatchers("/api/v1/cart/**").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/cart/update/**").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/buyer/orders").hasRole("BUYER")
 
                         // Seller endpoints
                         .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
