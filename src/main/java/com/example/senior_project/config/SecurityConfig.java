@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/buyer/unfollow/**").hasRole("BUYER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/buyer/following").hasRole("BUYER")
                         .requestMatchers("/api/v1/buyer/favorites/**").hasRole("BUYER")
+                        .requestMatchers("/api/v1/cart/**").hasRole("BUYER")
+
                         // Seller endpoints
                         .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
                         // Admin endpoints

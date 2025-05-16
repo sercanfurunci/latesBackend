@@ -12,6 +12,9 @@ import java.util.List;
 @Repository
 public interface OfferRepository extends JpaRepository<Offer, Long> {
     List<Offer> findByBuyerOrderByCreatedAtDesc(User buyer);
+
     List<Offer> findByProductId(Long productId);
+
     List<Offer> findByBuyerAndProductAndStatus(User buyer, Product product, OfferStatus status);
-} 
+
+}
