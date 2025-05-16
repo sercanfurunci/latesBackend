@@ -44,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/profiles/**").permitAll()
                         .requestMatchers("/static/**").permitAll()
+                        // Chatbot endpoint - authenticated but no role required
+                        .requestMatchers("/api/v1/chatbot/**").authenticated()
                         // Bildirimler ve Mesajlar
                         .requestMatchers("/api/v1/notifications/**").authenticated()
                         .requestMatchers("/api/v1/messages/**").authenticated()
@@ -59,11 +61,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/cart/**").hasRole("BUYER")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/cart/update/**").hasRole("BUYER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/buyer/orders").hasRole("BUYER")
-
                         // Seller endpoints
                         .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
                         // Admin endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ai/price-suggestion").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -78,7 +80,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
