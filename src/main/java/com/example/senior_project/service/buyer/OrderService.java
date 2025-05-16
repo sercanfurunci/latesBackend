@@ -59,16 +59,20 @@ public class OrderService {
 
             Order savedOrder = orderRepository.save(order);
 
-            // Ürün durumunu güncelle
-            product.setStatus(ProductStatus.SOLD);
+            // Ürün durumunu ve stoğunu güncelle
+            product.setStock(product.getStock() - 1); // veya sipariş miktarı kadar azalt
+            if (product.getStock() <= 0) {
+                product.setStatus(ProductStatus.SOLD);
+            } else {
+                product.setStatus(ProductStatus.AVAILABLE);
+            }
             productRepository.save(product);
 
             // Satıcıya bildirim gönder
             notificationService.notifySeller(
-                product.getSeller(), 
-                "Yeni bir siparişiniz var: " + product.getTitle(), 
-                savedOrder
-            );
+                    product.getSeller(),
+                    "Yeni bir siparişiniz var: " + product.getTitle(),
+                    savedOrder);
 
             return savedOrder;
 
@@ -111,7 +115,7 @@ public class OrderService {
             order.setStatus(OrderStatus.CANCELLED);
             order.setShippingStatus(ShippingStatus.CANCELLED);
             orderRepository.save(order);
-            
+
             // Ürünü tekrar satışa çıkar
             Product product = order.getProduct();
             product.setStatus(ProductStatus.AVAILABLE);
@@ -125,4 +129,4 @@ public class OrderService {
             throw new RuntimeException("Sipariş iptal edilirken bir hata oluştu: " + e.getMessage());
         }
     }
-} 
+}

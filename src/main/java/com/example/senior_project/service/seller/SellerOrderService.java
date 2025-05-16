@@ -33,11 +33,16 @@ public class SellerOrderService {
         }
 
         order.setStatus(newStatus);
+        if (newStatus == OrderStatus.SHIPPED
+                && (order.getTrackingNumber() == null || order.getTrackingNumber().isEmpty())) {
+            String autoTracking = "TRK" + System.currentTimeMillis();
+            order.setTrackingNumber(autoTracking);
+        }
         Order savedOrder = orderRepository.save(order);
-        
+
         String message = String.format("Your order status has been updated to %s", newStatus);
         notificationService.notifyBuyer(order.getBuyer(), message, order);
-        
+
         return savedOrder;
     }
 
@@ -51,4 +56,4 @@ public class SellerOrderService {
 
         return order;
     }
-} 
+}
