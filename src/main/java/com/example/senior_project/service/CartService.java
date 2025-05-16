@@ -36,20 +36,23 @@ public class CartService {
             throw new RuntimeException("Kendi ürününüzü sepete ekleyemezsiniz");
         }
 
-        // Kullanıcının bu ürün için kabul edilmiş teklifi var mı?
+        // Önce kabul edilmiş teklif var mı bak
+        double priceToUse = product.getPrice();
         Offer acceptedOffer = offerRepository
                 .findByBuyerAndProductAndStatus(user, product, OfferStatus.ACCEPTED)
                 .stream().findFirst()
-                .orElseThrow(() -> new RuntimeException("Bu ürün için kabul edilmiş teklifiniz yok!"));
+                .orElse(null);
 
-        double offerPrice = acceptedOffer.getOfferAmount();
+        if (acceptedOffer != null) {
+            priceToUse = acceptedOffer.getOfferAmount();
+        }
 
         Cart existingCartItem = cartRepository.findByUserIdAndProductId(user.getId(), productId)
                 .orElse(null);
 
         if (existingCartItem != null) {
             existingCartItem.setQuantity(existingCartItem.getQuantity() + quantity);
-            existingCartItem.setPrice(offerPrice); // Fiyatı güncelle
+            existingCartItem.setPrice(priceToUse); // Fiyatı güncelle
             return cartRepository.save(existingCartItem);
         }
 
@@ -57,7 +60,7 @@ public class CartService {
         cartItem.setUser(user);
         cartItem.setProduct(product);
         cartItem.setQuantity(quantity);
-        cartItem.setPrice(offerPrice); // Teklif fiyatı
+        cartItem.setPrice(priceToUse); // Teklif veya normal fiyat
 
         return cartRepository.save(cartItem);
     }
