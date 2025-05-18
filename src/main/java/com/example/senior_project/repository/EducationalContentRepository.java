@@ -11,6 +11,11 @@ import java.util.List;
 @Repository
 public interface EducationalContentRepository extends JpaRepository<EducationalContent, Long> {
     Page<EducationalContent> findByIsPublishedTrue(Pageable pageable);
+
     List<EducationalContent> findByCategoryAndIsPublishedTrue(String category);
-    List<EducationalContent> findByTitleContainingOrDescriptionContainingAndIsPublishedTrue(String titleKeyword, String descriptionKeyword);
-} 
+
+    List<EducationalContent> findByTitleContainingOrDescriptionContainingAndIsPublishedTrue(String titleKeyword,
+            String descriptionKeyword);
+
+    List<EducationalContent> findByCategory(String category);
+}

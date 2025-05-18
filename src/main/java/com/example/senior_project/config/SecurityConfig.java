@@ -34,11 +34,16 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
+                        .requestMatchers(
+                                "/api/v1/auth/**",
+                                "/api/v1/educational-contents/**",
+                                "/api/v1/products/**",
+                                "/api/v1/categories/**",
+                                "/api/v1/ai/**",
+                                "/api/v1/success-stories/**")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/*/comments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/buyer/comments/product/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()

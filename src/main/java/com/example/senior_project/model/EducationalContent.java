@@ -17,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class EducationalContent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,29 +26,25 @@ public class EducationalContent {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(length = 1000)
     private String description;
 
     @Column(nullable = false)
     private String category; // Örn: "Girişimcilik", "Pazarlama", "Ürün Sunumu"
 
-    @Column(columnDefinition = "TEXT")
-    private String content;
+    private String imageUrl;
+
+    private Integer duration; // dakika cinsinden
+
+    @Column(nullable = false)
+    private String videoUrl;
 
     @ElementCollection
-    @CollectionTable(
-        name = "educational_content_resources",
-        schema = "sc_seniorproject",
-        joinColumns = @JoinColumn(name = "educational_content_id")
-    )
+    @CollectionTable(name = "educational_content_resources", schema = "sc_seniorproject", joinColumns = @JoinColumn(name = "educational_content_id"))
     private List<String> resources = new ArrayList<>(); // Ek kaynaklar, linkler
 
     @ElementCollection
-    @CollectionTable(
-        name = "educational_content_video_urls",
-        schema = "sc_seniorproject",
-        joinColumns = @JoinColumn(name = "educational_content_id")
-    )
+    @CollectionTable(name = "educational_content_video_urls", schema = "sc_seniorproject", joinColumns = @JoinColumn(name = "educational_content_id"))
     private List<String> videoUrls = new ArrayList<>(); // Video içerikleri
 
     @Column(nullable = false)
@@ -68,6 +64,10 @@ public class EducationalContent {
     @Column(nullable = false)
     private boolean isPublished;
 
+    @ManyToOne
+    @JoinColumn(name = "created_by")
+    private User createdBy;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -77,4 +77,4 @@ public class EducationalContent {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-} 
+}

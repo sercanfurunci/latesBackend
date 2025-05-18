@@ -1,7 +1,6 @@
 package com.example.senior_project.repository;
 
-import com.example.senior_project.model.SuccessStory;
-import com.example.senior_project.model.User;
+import com.example.senior_project.entity.SuccessStory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,8 +10,11 @@ import java.util.List;
 
 @Repository
 public interface SuccessStoryRepository extends JpaRepository<SuccessStory, Long> {
-    Page<SuccessStory> findByIsApprovedTrue(Pageable pageable);
-    List<SuccessStory> findByAuthor(User author);
-    List<SuccessStory> findByCategoryAndIsApprovedTrue(String category);
-    List<SuccessStory> findByTitleContainingOrStoryContainingAndIsApprovedTrue(String titleKeyword, String storyKeyword);
-} 
+    Page<SuccessStory> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    Page<SuccessStory> findByApprovedTrue(Pageable pageable);
+
+    List<SuccessStory> findByCategoryAndApprovedTrue(String category);
+
+    List<SuccessStory> findByTitleContainingOrContentContainingAndApprovedTrue(String title, String content);
+}
