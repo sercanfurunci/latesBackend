@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -26,5 +28,11 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<User> getProfile(@PathVariable Long userId) {
         return ResponseEntity.ok(userService.getProfile(userId));
+    }
+
+    @GetMapping("/{userId}/following")
+    public ResponseEntity<List<User>> getUserFollowing(@PathVariable Long userId) {
+        User user = userService.getProfile(userId);
+        return ResponseEntity.ok(user.getFollowing().stream().toList());
     }
 }
