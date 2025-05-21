@@ -8,6 +8,7 @@ import com.example.senior_project.repository.CategoryRepository;
 import com.example.senior_project.repository.ProductRepository;
 import com.example.senior_project.dto.ProductCreateRequest;
 import com.example.senior_project.dto.ProductUpdateRequest;
+import com.example.senior_project.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ import java.util.List;
 public class SellerProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final NotificationService notificationService;
     private static final Logger log = LoggerFactory.getLogger(SellerProductService.class);
 
     @Value("${app.upload.dir}")
@@ -35,7 +37,7 @@ public class SellerProductService {
     public Product createProduct(ProductCreateRequest request, User seller) {
         try {
             Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found"));
+                    .orElseThrow(() -> new RuntimeException("Kategori bulunamadı"));
 
             Product product = Product.builder()
                     .title(request.getTitle())
@@ -44,7 +46,7 @@ public class SellerProductService {
                     .stock(request.getStock())
                     .category(category)
                     .seller(seller)
-                    .status(ProductStatus.AVAILABLE)
+                    .status(ProductStatus.PENDING_REVIEW)
                     .images(new ArrayList<>(request.getImages()))
                     .tags(new HashSet<>(request.getTags()))
                     .ingredients(request.getIngredients())
@@ -53,7 +55,12 @@ public class SellerProductService {
                     .type(request.getType())
                     .build();
 
-            return productRepository.save(product);
+            Product savedProduct = productRepository.save(product);
+
+            // Admin'e yeni ürün bildirimi gönder
+            notificationService.notifyNewProduct(savedProduct);
+
+            return savedProduct;
         } catch (Exception e) {
             throw new RuntimeException("Ürün oluşturulurken bir hata oluştu: " + e.getMessage());
         }
@@ -97,6 +104,19 @@ public class SellerProductService {
         }
         if (request.getShippingDetails() != null && !request.getShippingDetails().trim().isEmpty()) {
             product.setShippingDetails(request.getShippingDetails().trim());
+        }
+
+        // Önemli değişiklikler yapıldığında durumu PENDING_REVIEW'a çevir
+        if (request.getTitle() != null || request.getDescription() != null ||
+                request.getPrice() != null || request.getCategoryId() != null) {
+            product.setStatus(ProductStatus.PENDING_REVIEW);
+
+            // Admin'e ürün güncelleme bildirimi gönder
+            notificationService.notifyNewProduct(product);
+            // Satıcıya da bilgi ver (isteğe bağlı)
+            notificationService.createSystemNotification(
+                    seller,
+                    String.format("'%s' ürününüz admin onayı için gönderildi", product.getTitle()));
         }
 
         log.debug("Product updated successfully: {}", product);

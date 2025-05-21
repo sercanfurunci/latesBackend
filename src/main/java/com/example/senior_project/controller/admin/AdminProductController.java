@@ -1,9 +1,10 @@
 package com.example.senior_project.controller.admin;
 
-import com.example.senior_project.dto.ProductReviewRequest;
-import com.example.senior_project.dto.ProductUpdateRequest;
+import com.example.senior_project.dto.ProductDTO;
+import com.example.senior_project.dto.ProductStatusUpdateRequest;
 import com.example.senior_project.model.Product;
 import com.example.senior_project.service.admin.AdminProductService;
+import com.example.senior_project.service.DtoConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminProductController {
     private final AdminProductService adminProductService;
+    private final DtoConverter dtoConverter;
 
     @GetMapping
     public ResponseEntity<Page<Product>> getAllProducts(
@@ -36,31 +38,17 @@ public class AdminProductController {
         return ResponseEntity.ok(adminProductService.getProductDetails(productId));
     }
 
-    @PutMapping("/{productId}")
-    public ResponseEntity<?> updateProduct(
-            @PathVariable Long productId,
-            @Valid @RequestBody ProductUpdateRequest request) {
-        try {
-            Product updatedProduct = adminProductService.updateProduct(productId, request);
-            return ResponseEntity.ok(updatedProduct);
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Ürün güncellenirken bir hata oluştu: " + e.getMessage());
-        }
-    }
-
     @PutMapping("/{productId}/status")
     public ResponseEntity<Product> updateProductStatus(
             @PathVariable Long productId,
-            @Valid @RequestBody ProductReviewRequest request) {
-        return ResponseEntity.ok(adminProductService.updateProductStatus(productId, request.getMessage()));
+            @Valid @RequestBody ProductStatusUpdateRequest request) {
+        return ResponseEntity.ok(adminProductService.updateProductStatus(productId, request));
     }
 
     @DeleteMapping("/{productId}")
     public ResponseEntity<Void> deleteProduct(
             @PathVariable Long productId,
-            @RequestParam String reason) {
+            @RequestParam(required = false) String reason) {
         adminProductService.deleteProduct(productId, reason);
         return ResponseEntity.ok().build();
     }
@@ -73,15 +61,16 @@ public class AdminProductController {
     @PostMapping("/{productId}/approve")
     public ResponseEntity<Product> approveProduct(
             @PathVariable Long productId,
-            @Valid @RequestBody ProductReviewRequest request) {
-        return ResponseEntity.ok(adminProductService.approveProduct(productId, request.getMessage()));
+            @RequestParam(required = false) String message) {
+        return ResponseEntity.ok(adminProductService.approveProduct(productId, message));
     }
 
     @PostMapping("/{productId}/reject")
     public ResponseEntity<Product> rejectProduct(
             @PathVariable Long productId,
-            @Valid @RequestBody ProductReviewRequest request) {
-        return ResponseEntity.ok(adminProductService.rejectProduct(productId, request.getMessage()));
+            @RequestBody(required = false) ProductStatusUpdateRequest request) {
+        return ResponseEntity
+                .ok(adminProductService.rejectProduct(productId, request != null ? request.getMessage() : null));
     }
 
     @PostMapping("/{productId}/images")

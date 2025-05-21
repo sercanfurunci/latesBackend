@@ -2,9 +2,11 @@ package com.example.senior_project.service.admin;
 
 import com.example.senior_project.dto.ProductReviewRequest;
 import com.example.senior_project.dto.ProductUpdateRequest;
+import com.example.senior_project.dto.ProductStatusUpdateRequest;
 import com.example.senior_project.model.Category;
 import com.example.senior_project.model.Product;
 import com.example.senior_project.model.ProductStatus;
+import com.example.senior_project.model.NotificationType;
 import com.example.senior_project.model.User;
 import com.example.senior_project.repository.CategoryRepository;
 import com.example.senior_project.repository.ProductRepository;
@@ -78,26 +80,23 @@ public class AdminProductService {
         }
 
         @Transactional
-        public Product updateProductStatus(Long productId, String message) {
+        public Product updateProductStatus(Long productId, ProductStatusUpdateRequest request) {
                 Product product = productRepository.findById(productId)
                                 .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
 
-                // Mevcut durumun tersini al
-                ProductStatus newStatus = product.getStatus() == ProductStatus.AVAILABLE
-                                ? ProductStatus.INACTIVE
-                                : ProductStatus.AVAILABLE;
+                product.setStatus(request.getStatus());
+                Product updatedProduct = productRepository.save(product);
 
-                product.setStatus(newStatus);
-                product = productRepository.save(product);
+                // Send notification to seller
+                notificationService.notifySeller(
+                                product.getSeller(),
+                                String.format("'%s' ürününün durumu '%s' olarak güncellendi. Sebep: %s",
+                                                product.getTitle(),
+                                                request.getStatus(),
+                                                request.getMessage()),
+                                product);
 
-                // Satıcıya bildirim gönder
-                User seller = product.getSeller();
-                notificationService.sendNotification(
-                                seller.getId(),
-                                "Ürün Durumu Güncellendi",
-                                "Ürününüz '" + product.getTitle() + "' durumu güncellendi. " + message);
-
-                return product;
+                return updatedProduct;
         }
 
         @Transactional
@@ -105,14 +104,15 @@ public class AdminProductService {
                 Product product = productRepository.findById(productId)
                                 .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
 
-                productRepository.delete(product);
+                // Send notification to seller before deleting
+                notificationService.notifySeller(
+                                product.getSeller(),
+                                String.format("'%s' ürünü silindi. Sebep: %s",
+                                                product.getTitle(),
+                                                reason != null ? reason : "Belirtilmedi"),
+                                product);
 
-                // Satıcıya bildirim gönder
-                User seller = product.getSeller();
-                notificationService.sendNotification(
-                                seller.getId(),
-                                "Ürün Silindi",
-                                "Ürününüz '" + product.getTitle() + "' admin tarafından silindi. Sebep: " + reason);
+                productRepository.delete(product);
         }
 
         public Page<Product> getPendingProducts(Pageable pageable) {
@@ -129,10 +129,10 @@ public class AdminProductService {
 
                 // Satıcıya bildirim gönder
                 User seller = product.getSeller();
-                notificationService.sendNotification(
-                                seller.getId(),
-                                "Ürün Onaylandı",
-                                "Ürününüz '" + product.getTitle() + "' başarıyla onaylandı. " + message);
+                notificationService.createSystemNotification(
+                                seller,
+                                String.format("Ürününüz '%s' başarıyla onaylandı. %s", product.getTitle(),
+                                                message != null ? message : ""));
 
                 return product;
         }
@@ -147,10 +147,10 @@ public class AdminProductService {
 
                 // Satıcıya bildirim gönder
                 User seller = product.getSeller();
-                notificationService.sendNotification(
-                                seller.getId(),
-                                "Ürün Reddedildi",
-                                "Ürününüz '" + product.getTitle() + "' reddedildi. " + message);
+                notificationService.createSystemNotification(
+                                seller,
+                                String.format("Ürününüz '%s' reddedildi. Sebep: %s", product.getTitle(),
+                                                message != null && !message.isEmpty() ? message : "Belirtilmedi"));
 
                 return product;
         }

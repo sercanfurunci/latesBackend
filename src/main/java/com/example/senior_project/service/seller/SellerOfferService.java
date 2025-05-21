@@ -21,7 +21,16 @@ public class SellerOfferService {
     private final NotificationService notificationService;
 
     public List<Offer> getProductOffers(Long productId, User seller) {
-        return offerRepository.findByProductId(productId);
+        List<Offer> offers = offerRepository.findByProductId(productId);
+        if (offers.isEmpty()) {
+            return offers;
+        }
+        // Check if the authenticated user is the seller of the product
+        if (!offers.get(0).getProduct().getSeller().getId().equals(seller.getId())) {
+            // Not the product's seller, return empty list
+            return List.of();
+        }
+        return offers;
     }
 
     @Transactional(noRollbackFor = Exception.class)

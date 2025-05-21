@@ -7,6 +7,7 @@ import com.example.senior_project.model.Offer;
 import com.example.senior_project.model.Order;
 import com.example.senior_project.model.Product;
 import com.example.senior_project.model.User;
+import com.example.senior_project.model.UserType;
 import com.example.senior_project.repository.NotificationRepository;
 import com.example.senior_project.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -183,22 +184,24 @@ public class NotificationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
-        Notification notification = new Notification();
-        notification.setUser(user);
-        notification.setTitle(title);
-        notification.setMessage(message);
-        notification.setRead(false);
+        Notification notification = Notification.builder()
+                .user(user)
+                .title(title)
+                .message(message)
+                .isRead(false)
+                .build();
 
         notificationRepository.save(notification);
     }
 
     @Transactional
     public void notifySeller(User seller, String message, Object data) {
-        Notification notification = new Notification();
-        notification.setUser(seller);
-        notification.setTitle("Ürün Bildirimi");
-        notification.setMessage(message);
-        notification.setRead(false);
+        Notification notification = Notification.builder()
+                .user(seller)
+                .title("Ürün Bildirimi")
+                .message(message)
+                .isRead(false)
+                .build();
 
         notificationRepository.save(notification);
     }
@@ -225,5 +228,39 @@ public class NotificationService {
                 .message(message)
                 .link(link)
                 .build());
+    }
+
+    public void notifyNewProduct(Product product) {
+        try {
+            // Tüm admin kullanıcılarını bul
+            List<User> admins = userRepository.findByUserType(UserType.ADMIN);
+
+            // Her admin için bildirim oluştur
+            for (User admin : admins) {
+                NotificationRequest request = NotificationRequest.builder()
+                        .user(admin)
+                        .type(NotificationType.PRODUCT_CREATED)
+                        .message(String.format("Yeni ürün eklendi: %s - Satıcı: %s %s",
+                                product.getTitle(),
+                                product.getSeller().getFirstName(),
+                                product.getSeller().getLastName()))
+                        .link("/admin")
+                        .build();
+
+                createNotification(request);
+            }
+
+            // Satıcıya da bildirim gönder
+            NotificationRequest sellerRequest = NotificationRequest.builder()
+                    .user(product.getSeller())
+                    .type(NotificationType.PRODUCT_CREATED)
+                    .message(String.format("'%s' ürününüz admin onayı için gönderildi", product.getTitle()))
+                    .link("/products/" + product.getId())
+                    .build();
+
+            createNotification(sellerRequest);
+        } catch (Exception e) {
+            log.error("Yeni ürün bildirimi gönderilirken hata: {}", e.getMessage());
+        }
     }
 }

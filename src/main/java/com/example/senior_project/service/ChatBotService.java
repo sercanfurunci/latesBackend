@@ -42,7 +42,7 @@ public class ChatBotService {
     @Value("${openai.api.url:}")
     private String openaiApiUrl;
 
-    @Value("${chatbot.mode:AI}") // AI or RULE_BASED
+    @Value("${chatbot.mode:AI}")
     private String chatbotMode;
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
@@ -151,7 +151,11 @@ public class ChatBotService {
                 context.append("Sipariş No: ").append(order.getId()).append("\n");
                 context.append("Durum: ").append(getOrderStatusInTurkish(order.getStatus())).append("\n");
                 context.append("Tarih: ").append(order.getCreatedAt().format(formatter)).append("\n");
-                context.append("Tutar: ").append(order.getTotalAmount()).append(" TL\n\n");
+                context.append("Tutar: ").append(order.getTotalAmount()).append(" TL\n");
+                if (order.getTrackingNumber() != null && !order.getTrackingNumber().isEmpty()) {
+                    context.append("Kargo Takip No: ").append(order.getTrackingNumber()).append("\n");
+                }
+                context.append("\n");
             }
         }
 
@@ -165,10 +169,16 @@ public class ChatBotService {
                 context.append("Açıklama: ").append(product.getDescription()).append("\n");
                 context.append("Stok: ").append(product.getStock()).append("\n");
                 context.append("Fiyat: ").append(product.getPrice()).append(" TL\n");
-                context.append("Satıcı: ").append(product.getSeller().getFirstName()).append(" ")
-                        .append(product.getSeller().getLastName()).append("\n");
-                context.append("Satıcı Telefon: ").append(product.getSeller().getPhoneNumber()).append("\n");
-                context.append("Kategori: ").append(product.getCategory().getName()).append("\n");
+                if (product.getSeller() != null) {
+                    context.append("Satıcı: ").append(product.getSeller().getFirstName()).append(" ")
+                            .append(product.getSeller().getLastName()).append("\n");
+                    if (product.getSeller().getPhoneNumber() != null) {
+                        context.append("Satıcı Telefon: ").append(product.getSeller().getPhoneNumber()).append("\n");
+                    }
+                }
+                if (product.getCategory() != null) {
+                    context.append("Kategori: ").append(product.getCategory().getName()).append("\n");
+                }
                 context.append("Durum: ").append(product.getStatus()).append("\n");
                 context.append("---\n");
             }
@@ -178,22 +188,32 @@ public class ChatBotService {
     }
 
     private List<Order> getUserOrders(User user) {
-        if (lastOrdersCacheUpdate != null &&
-                lastOrdersCacheUpdate.plusMinutes(5).isAfter(LocalDateTime.now()) &&
-                userOrdersCache.containsKey(user.getId())) {
-            return userOrdersCache.get(user.getId());
+        try {
+            if (lastOrdersCacheUpdate != null &&
+                    lastOrdersCacheUpdate.plusMinutes(5).isAfter(LocalDateTime.now()) &&
+                    userOrdersCache.containsKey(user.getId())) {
+                return userOrdersCache.get(user.getId());
+            }
+            List<Order> orders = orderRepository.findByBuyerOrderByCreatedAtDesc(user);
+            userOrdersCache.put(user.getId(), orders);
+            return orders;
+        } catch (Exception e) {
+            logger.error("Error getting user orders: {}", e.getMessage());
+            return new ArrayList<>();
         }
-        List<Order> orders = orderRepository.findByBuyerOrderByCreatedAtDesc(user);
-        userOrdersCache.put(user.getId(), orders);
-        return orders;
     }
 
     private List<Product> getAllProducts() {
-        if (lastProductCacheUpdate != null &&
-                lastProductCacheUpdate.plusMinutes(5).isAfter(LocalDateTime.now())) {
-            return new ArrayList<>(productCache.values());
+        try {
+            if (lastProductCacheUpdate != null &&
+                    lastProductCacheUpdate.plusMinutes(5).isAfter(LocalDateTime.now())) {
+                return new ArrayList<>(productCache.values());
+            }
+            return productRepository.findAll();
+        } catch (Exception e) {
+            logger.error("Error getting all products: {}", e.getMessage());
+            return new ArrayList<>();
         }
-        return productRepository.findAll();
     }
 
     private String getAIResponse(String userMessage, String context) {
@@ -251,21 +271,6 @@ public class ChatBotService {
         }
     }
 
-    private String processAIResponse(String aiResponse, User user) {
-        // AI yanıtını işle ve gerekli bilgileri ekle
-        // Örneğin, sipariş numaralarını veya kargo takip numaralarını doğrula
-        return aiResponse;
-    }
-
-    private ChatMessage createFallbackResponse(User user) {
-        ChatMessage fallback = new ChatMessage();
-        fallback.setText("Üzgünüm, şu anda size yardımcı olamıyorum. Lütfen daha sonra tekrar deneyin.");
-        fallback.setSender("bot");
-        fallback.setTimestamp(LocalDateTime.now());
-        fallback.setMessageType("text");
-        return fallback;
-    }
-
     private String getOrderStatusInTurkish(OrderStatus status) {
         switch (status) {
             case PENDING:
@@ -289,50 +294,30 @@ public class ChatBotService {
         String text = message.getText().toLowerCase();
         String userName = user.getFirstName();
 
-        // Satıcı telefon numarası sorgusu
-        if (text.contains("telefon") || text.contains("tel") || text.contains("numara")) {
-            List<Product> products = productRepository.findByTitleContainingOrDescriptionContaining(text, text);
-            if (!products.isEmpty()) {
-                Product product = products.get(0);
-                return String.format("Merhaba %s, %s ürününün satıcısı %s %s'in telefon numarası: %s",
-                        userName, product.getTitle(), product.getSeller().getFirstName(),
-                        product.getSeller().getLastName(), product.getSeller().getPhoneNumber());
-            }
-        }
-
-        // Ürün sorgusu kontrolü
-        if (text.contains("stok") || text.contains("ürün") || text.contains("fiyat")) {
-            List<Product> products = productRepository.findByTitleContainingOrDescriptionContaining(text, text);
-            if (!products.isEmpty()) {
-                Product product = products.get(0);
-                return String.format("Merhaba %s, %s ürünü için bilgiler:\n" +
-                        "Stok: %d adet\n" +
-                        "Fiyat: %.2f TL\n" +
-                        "Satıcı: %s %s\n" +
-                        "Satıcı Telefon: %s",
-                        userName, product.getTitle(), product.getStock(),
-                        product.getPrice(), product.getSeller().getFirstName(),
-                        product.getSeller().getLastName(), product.getSeller().getPhoneNumber());
-            }
-        }
-
-        // Diğer yanıtlar...
-        if (text.contains("merhaba") || text.contains("selam")) {
-            return "Merhaba " + userName + "! Size nasıl yardımcı olabilirim?";
-        }
-        if (text.contains("teşekkür") || text.contains("sağol")) {
-            return "Rica ederim " + userName + "! Başka bir sorunuz olursa yardımcı olmaktan mutluluk duyarım.";
-        }
-        if (text.contains("sipariş") || text.contains("takip")) {
-            List<Order> userOrders = orderRepository.findByBuyerOrderByCreatedAtDesc(user);
+        // Sipariş durumu sorgusu
+        if (text.contains("sipariş") || text.contains("durum") || text.contains("takip")) {
+            List<Order> userOrders = getUserOrders(user);
             if (userOrders.isEmpty()) {
                 return "Merhaba " + userName + ", henüz bir siparişiniz bulunmamaktadır.";
             }
             Order latestOrder = userOrders.get(0);
-            return String.format("Merhaba %s, son siparişinizin durumu: %s. Sipariş numaranız: %d", userName,
-                    latestOrder.getStatus(), latestOrder.getId());
+            String response = String.format(
+                    "Merhaba %s, son siparişinizin durumu: %s. Sipariş numaranız %d ve %s tarihinde verilmiş olup tutarı %.2f TL'dir.",
+                    userName,
+                    getOrderStatusInTurkish(latestOrder.getStatus()),
+                    latestOrder.getId(),
+                    latestOrder.getCreatedAt().format(formatter),
+                    latestOrder.getTotalAmount());
+
+            if (latestOrder.getTrackingNumber() != null && !latestOrder.getTrackingNumber().isEmpty()) {
+                response += String.format(" Kargo takip numaranız: %s", latestOrder.getTrackingNumber());
+            }
+
+            return response;
         }
-        if (text.contains("kargo") || text.contains("teslimat")) {
+
+        // Kargo takip numarası sorgusu
+        if (text.contains("kargo") || text.contains("takip") || text.contains("kod")) {
             List<Order> shippedOrders = orderRepository.findByBuyerAndStatusOrderByCreatedAtDesc(user,
                     OrderStatus.SHIPPED);
             if (shippedOrders.isEmpty()) {
@@ -349,10 +334,13 @@ public class ChatBotService {
                     "Merhaba %s, son kargoya verilen siparişinizin takip numarası: %s. Sipariş numaranız: %d", userName,
                     trackingNumber, shippedOrder.getId());
         }
-        if (text.equals("kargo")) {
-            return String.format(
-                    "Merhaba %s, kargo takibi için 'Kargo takip' yazabilirsiniz. Size en son kargoya verilen siparişinizin takip numarasını göstereceğim.",
-                    userName);
+
+        // Diğer yanıtlar...
+        if (text.contains("merhaba") || text.contains("selam")) {
+            return "Merhaba " + userName + "! Size nasıl yardımcı olabilirim?";
+        }
+        if (text.contains("teşekkür") || text.contains("sağol")) {
+            return "Rica ederim " + userName + "! Başka bir sorunuz olursa yardımcı olmaktan mutluluk duyarım.";
         }
         if (text.contains("iade") || text.contains("değişim")) {
             return String.format(

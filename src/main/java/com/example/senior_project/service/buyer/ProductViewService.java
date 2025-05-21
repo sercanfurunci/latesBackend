@@ -20,19 +20,26 @@ public class ProductViewService {
     }
 
     public List<Product> searchProducts(String keyword) {
-        return productRepository.findByTitleContainingOrDescriptionContaining(keyword, keyword);
+        return productRepository.findByStatusAndTitleContainingOrDescriptionContaining(
+                ProductStatus.AVAILABLE, keyword, keyword);
     }
 
     public List<Product> getProductsByCategory(Long categoryId) {
-        return productRepository.findByCategoryId(categoryId);
+        return productRepository.findByStatusAndCategoryId(ProductStatus.AVAILABLE, categoryId);
     }
 
     public List<Product> filterByPriceRange(Double minPrice, Double maxPrice) {
-        return productRepository.findByPriceBetween(minPrice, maxPrice);
+        return productRepository.findByStatusAndPriceBetween(ProductStatus.AVAILABLE, minPrice, maxPrice);
     }
 
     public Product getProductDetails(Long productId) {
-        return productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
+
+        if (product.getStatus() != ProductStatus.AVAILABLE) {
+            throw new RuntimeException("Ürün şu anda satışta değil");
+        }
+
+        return product;
     }
 }
